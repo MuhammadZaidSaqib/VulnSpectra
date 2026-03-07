@@ -24,8 +24,10 @@ def main():
         epilog="""
 Examples:
   python main.py --target 192.168.1.10
+  python main.py --target example.com --ports 80,443
   python main.py --range 192.168.1.0/24
   python main.py --target 192.168.1.10 --ports 1-1000
+  python main.py --start-test-lab
   python main.py --dashboard
   python main.py --api
         """
@@ -40,6 +42,7 @@ Examples:
     # Service options
     parser.add_argument('--dashboard', action='store_true', help='Start web dashboard')
     parser.add_argument('--api', action='store_true', help='Start API server')
+    parser.add_argument('--start-test-lab', action='store_true', help='Start vulnerable services for testing')
 
     # Output options
     parser.add_argument('--output', type=str, help='Output directory for reports')
@@ -62,6 +65,23 @@ Examples:
     if not args.no_console:
         console_reporter = ConsoleReporter()
         console_reporter.print_banner()
+
+    # Test Lab mode
+    if args.start_test_lab:
+        logger.info("Starting Vulnerable Services Testing Lab...")
+        from testing_lab import VulnerableServicesLab
+
+        lab = VulnerableServicesLab()
+
+        try:
+            lab.start_all()
+            lab.wait()
+        except KeyboardInterrupt:
+            logger.info("\n\nShutting down...")
+            lab.stop_all()
+            sys.exit(0)
+
+        return
 
     # Dashboard mode
     if args.dashboard:

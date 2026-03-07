@@ -121,22 +121,26 @@ class ServiceDetector:
             banner = None
 
             # Try different probes based on port
-            if port in [80, 8080, 8443]:
+            if port in [80, 8080, 8081, 8082, 8443]:
                 # HTTP probe
                 sock.send(b'HEAD / HTTP/1.1\r\nHost: ' + ip.encode() + b'\r\n\r\n')
                 banner = sock.recv(2048).decode('utf-8', errors='ignore')
             elif port == 443:
                 # HTTPS - just try to read
                 banner = sock.recv(1024).decode('utf-8', errors='ignore')
-            elif port == 22:
+            elif port in [22, 2222]:
                 # SSH - server sends banner first
                 banner = sock.recv(1024).decode('utf-8', errors='ignore')
-            elif port == 21:
+            elif port in [21, 2121]:
                 # FTP - server sends banner first
                 banner = sock.recv(1024).decode('utf-8', errors='ignore')
-            elif port == 25:
+            elif port in [25, 2525]:
                 # SMTP - server sends banner first
                 banner = sock.recv(1024).decode('utf-8', errors='ignore')
+            elif port == 6379:
+                # Redis - send INFO command
+                sock.send(b'INFO\r\n')
+                banner = sock.recv(2048).decode('utf-8', errors='ignore')
             else:
                 # Generic probe
                 try:
@@ -221,7 +225,12 @@ class ServiceDetector:
             5900: 'VNC',
             6379: 'Redis',
             8080: 'HTTP',
+            8081: 'HTTP',
+            8082: 'HTTP',
             8443: 'HTTPS',
+            2121: 'FTP',
+            2222: 'SSH',
+            2525: 'SMTP',
             27017: 'MongoDB',
         }
 

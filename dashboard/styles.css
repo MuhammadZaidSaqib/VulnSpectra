@@ -700,27 +700,114 @@ tbody tr {
 .scan-progress h3 {
     color: var(--accent-primary);
     margin-bottom: 20px;
+    animation: scanningPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes scanningPulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
 }
 
 .progress-bar {
     width: 100%;
-    height: 30px;
+    height: 35px; /* Slightly taller for better visibility */
     background: var(--bg-primary);
     border-radius: 15px;
     overflow: hidden;
     margin-bottom: 15px;
+    border: 2px solid rgba(0, 217, 255, 0.5); /* Stronger border */
+    position: relative;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5); /* Inner shadow for depth */
 }
 
 .progress-fill {
     height: 100%;
     background: linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-    transition: width 0.3s ease;
+    /* Ultra-smooth transition with cubic-bezier easing */
+    transition: width 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-weight: bold;
+    font-size: 0.9em;
     min-width: 30px;
+    box-shadow: 0 0 15px rgba(0, 217, 255, 0.7);
+    animation: progressPulse 2s ease-in-out infinite, progressStripes 1s linear infinite;
+    will-change: width;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    position: relative;
+    overflow: hidden;
+    background-image:
+        repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 10px,
+            rgba(255, 255, 255, 0.1) 10px,
+            rgba(255, 255, 255, 0.1) 20px
+        );
+    background-size: 40px 40px;
+}
+
+@keyframes progressStripes {
+    0% {
+        background-position: 0 0, 0 0;
+    }
+    100% {
+        background-position: 0 0, 40px 0;
+    }
+}
+
+/* Shimmer effect for active progress bar */
+.progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 200%;
+    }
+}
+
+@keyframes progressPulse {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(0, 217, 255, 0.8);
+    }
+}
+
+/* Progress text styling with smooth transitions */
+.scan-progress p {
+    transition: color 0.3s ease, transform 0.2s ease;
+    font-size: 1em;
+    text-align: center;
+    margin-top: 10px;
+}
+
+.scan-progress p:hover {
+    transform: scale(1.02);
 }
 
 .scan-error {
@@ -1032,7 +1119,7 @@ tbody tr {
 
     .sidebar {
         width: 100%;
-        max-height: auto;
+        max-height: none;
         border-right: none;
         border-bottom: 1px solid var(--bg-tertiary);
     }
@@ -1059,7 +1146,7 @@ tbody tr {
     }
 
     .content {
-        max-height: auto;
+        max-height: none;
         padding: 20px;
     }
 

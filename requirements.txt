@@ -39,9 +39,12 @@ python-multipart>=0.0.6
 # ===== For Windows compatibility =====
 pywin32>=300; sys_platform == 'win32'
 
+# for making vulnerable FTP server for testing purposes
+flask>=2.3.0
+pyftpdlib>=1.5.9
+
 # ===== Development & Testing (Optional) =====
 # pytest>=7.0.0
 # pytest-asyncio>=0.21.0
 # black>=23.0.0
-
 

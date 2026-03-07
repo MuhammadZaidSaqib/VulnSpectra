@@ -10,6 +10,40 @@ VulnSpectra is a comprehensive, modular vulnerability scanning framework that co
 
 ---
 
+## 🚀 Quick Start
+
+### 1. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Start Test Lab (Optional)
+In one terminal, start the vulnerable services:
+```bash
+python main.py --start-test-lab
+```
+
+### 3. Start API Server
+In another terminal, start the API server:
+```bash
+python main.py --api
+```
+
+### 4. Open Dashboard
+In a third terminal or browser, open the dashboard:
+```bash
+python main.py --dashboard
+```
+
+The dashboard will open in your default browser. Then:
+1. Press **Ctrl+F5** to refresh cache
+2. Click **"New Scan"** in the sidebar
+3. Enter target: `127.0.0.1`
+4. Enter ports: `8080,2121,2222,2525,6379`
+5. Click **"Start Scan"** and watch the results!
+
+---
+
 ## 🌟 Key Features
 
 ### 🔍 Network Scanner
@@ -109,6 +143,63 @@ python main.py --dashboard
 ```
 
 The dashboard will open at: **http://localhost:8000**
+
+---
+
+## 🧪 Testing Lab
+
+VulnSpectra includes an **intentionally vulnerable testing lab** for demonstration and development.
+
+### Quick Start Testing Lab
+
+```bash
+# Start vulnerable services
+python main.py --start-test-lab
+```
+
+This starts 5 vulnerable services on localhost:
+- **Port 8080** - HTTP Web Server (Apache/2.4.49)
+- **Port 2121** - FTP Server (Anonymous login)
+- **Port 2222** - SSH Server (OpenSSH 5.3)
+- **Port 2525** - SMTP Server (Vulnerable)
+- **Port 6379** - Redis Server (3.2.1)
+
+### Scan the Testing Lab
+
+In a **separate terminal**, run:
+
+```bash
+# Scan all test lab services
+python main.py --target 127.0.0.1 --ports 8080,2121,2222,2525,6379
+```
+
+Or use the dashboard:
+
+```bash
+# Open dashboard
+python main.py --dashboard
+
+# In the dashboard:
+# Target: 127.0.0.1
+# Ports: 8080,2121,2222,2525,6379
+# Click "Start Scan"
+```
+
+### Expected Results
+
+The scanner should detect:
+- ✅ 5 open ports
+- ✅ 5 services with versions
+- ✅ Multiple CVE vulnerabilities
+- ✅ Risk scores and severity breakdown
+- ✅ Full dashboard population with graphs
+
+### ⚠️ Security Warning
+
+**These services are INTENTIONALLY VULNERABLE!**
+- Only run in isolated test/development environments
+- Never expose to public networks
+- Use only for testing VulnSpectra functionality
 
 ---
 
@@ -297,7 +388,7 @@ VulnSpectra/
 │   ├── logger.py          # Logging setup
 │   └── config.py          # Configuration
 │
-└── logs/                  # Log files
+├── logs/                  # Log files
     └── vulnspectra.log
 ```
 
@@ -858,4 +949,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **⚠️ Disclaimer**: This tool is for educational and authorized security testing purposes only. Unauthorized scanning of networks is illegal. Always obtain proper authorization before conducting security assessments.
 
 **Made with ❤️ by the VulnSpectra Team**
-

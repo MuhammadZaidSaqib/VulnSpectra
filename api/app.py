@@ -11,11 +11,13 @@ import uvicorn
 import asyncio
 from datetime import datetime
 import os
+import re
 
 from scanner import NetworkScanner, PortScanner, ServiceDetector
 from intelligence import CVEFetcher, VulnerabilityMatcher
 from reporting import JSONReporter, HTMLReporter
 from utils.logger import setup_logger
+from utils.validators import validate_target
 
 logger = logging.getLogger(__name__)
 
@@ -77,12 +79,27 @@ async def root():
     }
 
 
+def _normalize_target(raw_target: str) -> str:
+    """Normalize target to host/IP/CIDR only (strip protocol, path, and host port)."""
+    target = raw_target.strip()
+    target = re.sub(r"^https?://", "", target, flags=re.IGNORECASE)
+    target = target.split("/")[0]
+    # Strip host:port for common user input, keep plain host for scanner target.
+    if ":" in target and not target.startswith("["):
+        target = target.split(":")[0]
+    return target
+
+
 @app.post("/api/scan", response_model=ScanResponse)
 async def start_scan(request: ScanRequest, background_tasks: BackgroundTasks):
     """
     Start a new vulnerability scan
     """
-    logger.info(f"Starting scan for target: {request.target}")
+    normalized_target = _normalize_target(request.target)
+    if not validate_target(normalized_target):
+        raise HTTPException(status_code=400, detail=f"Invalid target: {request.target}")
+
+    logger.info(f"Starting scan for target: {normalized_target}")
 
     # Generate scan ID
     scan_id = f"scan_{datetime.now().strftime('%Y%m%d%H%M%S')}"
@@ -92,12 +109,12 @@ async def start_scan(request: ScanRequest, background_tasks: BackgroundTasks):
         "status": "running",
         "progress": 0.0,
         "started_at": datetime.now().isoformat(),
-        "target": request.target,
+        "target": normalized_target,
         "ports": request.ports
     }
 
     # Start scan in background
-    background_tasks.add_task(run_scan, scan_id, request.target, request.ports, request.timeout)
+    background_tasks.add_task(run_scan, scan_id, normalized_target, request.ports, request.timeout)
 
     return ScanResponse(
         scan_id=scan_id,
@@ -217,7 +234,9 @@ async def run_scan(scan_id: str, target: str, ports: str, timeout: int):
         cve_fetcher = CVEFetcher()
         vuln_matcher = VulnerabilityMatcher()
 
-        # Update progress
+        # Update progress frequently
+        active_scans[scan_id]["progress"] = 5.0
+        await asyncio.sleep(0.1)
         active_scans[scan_id]["progress"] = 10.0
 
         # 1. Network scan
@@ -230,6 +249,10 @@ async def run_scan(scan_id: str, target: str, ports: str, timeout: int):
         alive_hosts = [h for h in hosts if h.get('status') == 'up']
         logger.info(f"[{scan_id}] Found {len(alive_hosts)} alive hosts")
 
+        active_scans[scan_id]["progress"] = 20.0
+        await asyncio.sleep(0.05)
+        active_scans[scan_id]["progress"] = 25.0
+        await asyncio.sleep(0.05)
         active_scans[scan_id]["progress"] = 30.0
 
         # 2. Port scan
@@ -237,7 +260,8 @@ async def run_scan(scan_id: str, target: str, ports: str, timeout: int):
         port_list = port_scanner.parse_port_range(ports)
 
         all_services = []
-        for host in alive_hosts:
+        progress_step = 25 / (len(alive_hosts) + 1)
+        for idx, host in enumerate(alive_hosts):
             ip = host['ip']
             port_results = port_scanner.scan_host(ip, port_list)
 
@@ -246,8 +270,15 @@ async def run_scan(scan_id: str, target: str, ports: str, timeout: int):
                 services = service_detector.detect_services_bulk([port_results])
                 all_services.extend(services)
 
+            # Update progress smoothly
+            current_progress = 30.0 + (idx * progress_step)
+            active_scans[scan_id]["progress"] = current_progress
+            await asyncio.sleep(0.05)
+
         logger.info(f"[{scan_id}] Detected {len(all_services)} services")
 
+        active_scans[scan_id]["progress"] = 55.0
+        await asyncio.sleep(0.05)
         active_scans[scan_id]["progress"] = 60.0
 
         # 3. CVE lookup
@@ -262,12 +293,20 @@ async def run_scan(scan_id: str, target: str, ports: str, timeout: int):
                 products.add(product)
 
         # Fetch CVEs for each product
-        for product in products:
+        cve_progress_step = 15 / (len(products) + 1)
+        for idx, product in enumerate(products):
             cves = cve_fetcher.search_cve_by_product(product)
             all_cves.extend(cves)
 
+            # Update progress
+            current_progress = 60.0 + (idx * cve_progress_step)
+            active_scans[scan_id]["progress"] = current_progress
+            await asyncio.sleep(0.05)
+
         logger.info(f"[{scan_id}] Found {len(all_cves)} CVEs")
 
+        active_scans[scan_id]["progress"] = 75.0
+        await asyncio.sleep(0.05)
         active_scans[scan_id]["progress"] = 80.0
 
         # 4. Vulnerability matching
@@ -276,6 +315,8 @@ async def run_scan(scan_id: str, target: str, ports: str, timeout: int):
 
         logger.info(f"[{scan_id}] Found {len(vulnerabilities)} vulnerability matches")
 
+        active_scans[scan_id]["progress"] = 85.0
+        await asyncio.sleep(0.05)
         active_scans[scan_id]["progress"] = 90.0
 
         # 5. Calculate risk metrics
@@ -305,6 +346,8 @@ async def run_scan(scan_id: str, target: str, ports: str, timeout: int):
 
         # Update status
         active_scans[scan_id]["status"] = "completed"
+        active_scans[scan_id]["progress"] = 95.0
+        await asyncio.sleep(0.05)
         active_scans[scan_id]["progress"] = 100.0
         active_scans[scan_id]["completed_at"] = datetime.now().isoformat()
 
