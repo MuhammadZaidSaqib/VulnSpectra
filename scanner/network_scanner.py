@@ -28,6 +28,47 @@ class NetworkScanner:
         self.max_workers = max_workers
         logger.info(f"NetworkScanner initialized with timeout={timeout}s, workers={max_workers}")
 
+    def resolve_target(self, target: str) -> str:
+        """
+        Resolve domain name/URL to IP address, or validate IP
+
+        Args:
+            target: IP address, domain name, or URL
+
+        Returns:
+            IP address as string
+        """
+        # Remove protocol if present
+        target = target.replace('http://', '').replace('https://', '').strip()
+
+        # Remove path if present
+        target = target.split('/')[0]
+
+        # Remove port if present
+        target = target.split(':')[0]
+
+        # Check if already an IP address or CIDR
+        try:
+            # Try to parse as IP or CIDR
+            if '/' in target:
+                # CIDR notation - validate and return
+                ipaddress.ip_network(target, strict=False)
+                return target
+            else:
+                # Try to parse as IP
+                ipaddress.ip_address(target)
+                return target
+        except ValueError:
+            # Not an IP, try to resolve as domain name
+            try:
+                logger.info(f"Resolving domain name: {target}")
+                ip = socket.gethostbyname(target)
+                logger.info(f"Resolved {target} to {ip}")
+                return ip
+            except socket.gaierror as e:
+                logger.error(f"Failed to resolve domain {target}: {str(e)}")
+                raise ValueError(f"Cannot resolve domain name: {target}")
+
     def scan_host(self, ip: str) -> Dict:
         """
         Check if a single host is alive
@@ -104,19 +145,22 @@ class NetworkScanner:
 
     def scan_range(self, ip_range: str) -> List[Dict]:
         """
-        Scan a range of IP addresses
+        Scan a range of IP addresses or single domain/IP
 
         Args:
-            ip_range: IP range in CIDR notation (e.g., 192.168.1.0/24)
+            ip_range: IP range in CIDR notation, single IP, or domain name
 
         Returns:
             List of dictionaries with host information
         """
-        logger.info(f"Starting network scan for range: {ip_range}")
+        logger.info(f"Starting network scan for target: {ip_range}")
 
         try:
+            # Resolve target (handles IPs, domains, and CIDR)
+            resolved_target = self.resolve_target(ip_range)
+
             # Parse IP range
-            network = ipaddress.ip_network(ip_range, strict=False)
+            network = ipaddress.ip_network(resolved_target, strict=False)
             hosts = list(network.hosts())
 
             # If single IP

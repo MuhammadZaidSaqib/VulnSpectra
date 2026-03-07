@@ -44,28 +44,34 @@ def validate_ip_range(ip_range: str) -> bool:
 
 def validate_target(target: str) -> bool:
     """
-    Validate scan target (IP, hostname, or CIDR range)
+    Validate scan target (IP, hostname, URL, or CIDR range)
 
     Args:
-        target: Target string
+        target: Target string (IP, domain, URL, or CIDR)
 
     Returns:
         True if valid, False otherwise
     """
+    # Clean the target - remove protocol and path
+    cleaned_target = target.strip()
+    cleaned_target = re.sub(r'^https?://', '', cleaned_target)  # Remove protocol
+    cleaned_target = cleaned_target.split('/')[0]  # Remove path
+    cleaned_target = cleaned_target.split(':')[0]  # Remove port
+
     # Check if it's an IP address
-    if validate_ip(target):
+    if validate_ip(cleaned_target):
         return True
 
     # Check if it's a CIDR range
-    if '/' in target and validate_ip_range(target):
+    if '/' in cleaned_target and validate_ip_range(cleaned_target):
         return True
 
-    # Check if it's a valid hostname
+    # Check if it's a valid hostname/domain
     hostname_pattern = re.compile(
         r'^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$'
     )
 
-    if hostname_pattern.match(target):
+    if hostname_pattern.match(cleaned_target):
         return True
 
     return False

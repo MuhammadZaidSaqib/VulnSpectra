@@ -5,9 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VulnSpectra - SOC Dashboard</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Fallback styles if CSS fails to load */
+        body { background: #0a0e27; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        .dashboard-container { display: flex; flex-direction: column; min-height: 100vh; }
+        .header { background: linear-gradient(135deg, #1a1f3a 0%, #252d4a 100%); padding: 20px 40px; border-bottom: 2px solid #00d9ff; }
+        .main-content { display: flex; flex: 1; }
+        .sidebar { width: 280px; background: linear-gradient(180deg, #1a1f3a 0%, #252d4a 100%); padding: 20px 0; overflow-y: auto; max-height: calc(100vh - 80px); }
+        .content { flex: 1; padding: 40px; overflow-y: auto; }
+        .section { display: none; }
+        .section.active { display: block; }
+    </style>
 </head>
 <body>
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Modal Dialogs -->
+    <div id="modal-backdrop" class="modal-backdrop"></div>
+    <div id="scan-details-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Scan Details</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="scan-details-body">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+    </div>
+
+    <div id="cve-details-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>CVE Details</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="cve-details-body">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+    </div>
+
     <div class="dashboard-container">
         <!-- Header -->
         <header class="header">
@@ -25,14 +66,36 @@
         <div class="main-content">
             <!-- Sidebar -->
             <aside class="sidebar">
+                <div class="sidebar-brand">
+                    <span class="brand-icon">🛡️</span>
+                    <span class="brand-text">VulnSpectra</span>
+                </div>
                 <nav>
-                    <ul>
-                        <li><a href="#" class="active" data-section="dashboard">📊 Dashboard</a></li>
-                        <li><a href="#" data-section="scan">🔍 New Scan</a></li>
-                        <li><a href="#" data-section="vulnerabilities">⚠️ Vulnerabilities</a></li>
-                        <li><a href="#" data-section="hosts">💻 Hosts</a></li>
-                        <li><a href="#" data-section="reports">📄 Reports</a></li>
-                    </ul>
+                    <div class="nav-section">
+                        <h4>MAIN</h4>
+                        <ul>
+                            <li><a href="#" class="active" data-section="dashboard"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+                            <li><a href="#" data-section="scan"><i class="fas fa-search"></i> New Scan</a></li>
+                            <li><a href="#" data-section="active-scans"><i class="fas fa-spinner"></i> Active Scans</a></li>
+                        </ul>
+                    </div>
+                    <div class="nav-section">
+                        <h4>ANALYSIS</h4>
+                        <ul>
+                            <li><a href="#" data-section="vulnerabilities"><i class="fas fa-exclamation-triangle"></i> Vulnerabilities</a></li>
+                            <li><a href="#" data-section="hosts"><i class="fas fa-server"></i> Hosts</a></li>
+                            <li><a href="#" data-section="services"><i class="fas fa-plug"></i> Services</a></li>
+                            <li><a href="#" data-section="risk-matrix"><i class="fas fa-th"></i> Risk Matrix</a></li>
+                        </ul>
+                    </div>
+                    <div class="nav-section">
+                        <h4>TOOLS</h4>
+                        <ul>
+                            <li><a href="#" data-section="reports"><i class="fas fa-file-alt"></i> Reports</a></li>
+                            <li><a href="#" data-section="settings"><i class="fas fa-cog"></i> Settings</a></li>
+                            <li><a href="#" data-section="about"><i class="fas fa-info-circle"></i> About</a></li>
+                        </ul>
+                    </div>
                 </nav>
             </aside>
 
@@ -42,13 +105,14 @@
                 <section id="dashboard-section" class="section active">
                     <h2>Security Overview</h2>
 
-                    <!-- Summary Cards -->
+                    <!-- Summary Cards with Trends -->
                     <div class="summary-grid">
                         <div class="summary-card">
                             <div class="card-icon">🖥️</div>
                             <div class="card-content">
                                 <h3>Hosts Scanned</h3>
                                 <p class="card-value" id="hosts-scanned">0</p>
+                                <span class="card-trend" id="hosts-trend">↑ 0%</span>
                             </div>
                         </div>
 
@@ -57,6 +121,7 @@
                             <div class="card-content">
                                 <h3>Services Detected</h3>
                                 <p class="card-value" id="services-detected">0</p>
+                                <span class="card-trend" id="services-trend">↑ 0%</span>
                             </div>
                         </div>
 
@@ -65,6 +130,7 @@
                             <div class="card-content">
                                 <h3>Vulnerabilities</h3>
                                 <p class="card-value" id="vulnerabilities-found">0</p>
+                                <span class="card-trend critical" id="vuln-trend">↑ 0%</span>
                             </div>
                         </div>
 
@@ -72,7 +138,10 @@
                             <div class="card-icon">📊</div>
                             <div class="card-content">
                                 <h3>Risk Score</h3>
-                                <p class="card-value" id="risk-score">0</p>
+                                <div class="risk-gauge" id="risk-gauge">
+                                    <canvas id="risk-gauge-canvas"></canvas>
+                                    <span class="gauge-value" id="risk-score">0</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -122,17 +191,17 @@
                     <div class="scan-form-card">
                         <form id="scan-form">
                             <div class="form-group">
-                                <label for="target">Target IP/Range</label>
+                                <label for="target">Target IP/URL/Range</label>
                                 <input type="text" id="target" name="target"
-                                       placeholder="192.168.1.10 or 192.168.1.0/24" required>
-                                <small>Enter a single IP address or CIDR range</small>
+                                       placeholder="192.168.1.10, example.com, or 192.168.1.0/24" required>
+                                <small>Enter IP address, website URL, domain name, or CIDR range</small>
                             </div>
 
                             <div class="form-group">
                                 <label for="ports">Port Range</label>
                                 <input type="text" id="ports" name="ports"
-                                       value="1-1000" placeholder="1-1000">
-                                <small>Examples: 1-1000, 80,443, 1-100,8000-9000</small>
+                                       value="80,443" placeholder="80,443">
+                                <small>Examples: 80,443, 1-1000, 8000-9000</small>
                             </div>
 
                             <div class="form-group">
@@ -152,6 +221,12 @@
                                 <div class="progress-fill" id="progress-fill"></div>
                             </div>
                             <p id="progress-text">Initializing scan...</p>
+                            <div id="scan-error" class="scan-error hidden">
+                                <p id="error-message"></p>
+                                <button type="button" class="btn-primary" onclick="resetScanForm()">
+                                    <span>🔄 Start New Scan</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -261,9 +336,187 @@
                         </div>
                     </div>
                 </section>
-            </main>
-        </div>
-    </div>
+
+                <!-- Services Section -->
+                <section id="services-section" class="section">
+                    <h2>Detected Services</h2>
+
+                    <div class="filter-bar">
+                        <input type="text" id="services-search" placeholder="Search services..." class="search-input">
+                        <select id="services-filter" class="filter-select">
+                            <option value="">All Services</option>
+                            <option value="HTTP">HTTP/HTTPS</option>
+                            <option value="SSH">SSH</option>
+                            <option value="FTP">FTP</option>
+                            <option value="Database">Database</option>
+                        </select>
+                    </div>
+
+                    <div class="table-card">
+                        <div class="table-container">
+                            <table id="services-table">
+                                <thead>
+                                    <tr>
+                                        <th>IP Address</th>
+                                        <th>Port</th>
+                                        <th>Service</th>
+                                        <th>Product</th>
+                                        <th>Version</th>
+                                        <th>Vulnerabilities</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="services-tbody">
+                                    <tr>
+                                        <td colspan="6" class="no-data">No services detected</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Risk Matrix Section -->
+                <section id="risk-matrix-section" class="section">
+                    <h2>Risk Matrix</h2>
+
+                    <div class="risk-matrix-container">
+                        <div class="risk-matrix-grid" id="risk-matrix">
+                            <!-- Dynamically populated -->
+                        </div>
+                    </div>
+
+                    <div class="risk-stats">
+                        <div class="stat-box">
+                            <h4>Critical Issues</h4>
+                            <p id="critical-count" class="stat-value critical">0</p>
+                        </div>
+                        <div class="stat-box">
+                            <h4>High Priority</h4>
+                            <p id="high-count" class="stat-value high">0</p>
+                        </div>
+                        <div class="stat-box">
+                            <h4>Medium Priority</h4>
+                            <p id="medium-count" class="stat-value medium">0</p>
+                        </div>
+                        <div class="stat-box">
+                            <h4>Low Priority</h4>
+                            <p id="low-count" class="stat-value low">0</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Active Scans Section -->
+                <section id="active-scans-section" class="section">
+                    <h2>Active & Recent Scans</h2>
+
+                    <div class="scans-grid" id="scans-grid">
+                        <!-- Dynamically populated -->
+                    </div>
+                </section>
+
+                <!-- Settings Section -->
+                <section id="settings-section" class="section">
+                    <h2>Settings</h2>
+
+                    <div class="settings-grid">
+                        <div class="settings-card">
+                            <h3>Scan Settings</h3>
+                            <form id="settings-form">
+                                <div class="form-group">
+                                    <label>Default Timeout (seconds)</label>
+                                    <input type="number" id="default-timeout" value="2" min="1" max="30">
+                                </div>
+                                <div class="form-group">
+                                    <label>Default Port Range</label>
+                                    <input type="text" id="default-ports" value="1-1000">
+                                </div>
+                                <div class="form-group">
+                                    <label>Max Threads</label>
+                                    <input type="number" id="max-threads" value="100" min="1" max="500">
+                                </div>
+                                <button type="submit" class="btn-primary">Save Settings</button>
+                            </form>
+                        </div>
+
+                        <div class="settings-card">
+                            <h3>API Configuration</h3>
+                            <form id="api-settings-form">
+                                <div class="form-group">
+                                    <label>NVD API Key</label>
+                                    <input type="password" id="nvd-api-key" placeholder="Enter your API key">
+                                </div>
+                                <div class="form-group">
+                                    <label>API Rate Limit (req/sec)</label>
+                                    <input type="number" id="api-rate-limit" value="0.6" min="0.1" step="0.1">
+                                </div>
+                                <button type="submit" class="btn-primary">Save API Settings</button>
+                            </form>
+                        </div>
+
+                        <div class="settings-card">
+                            <h3>Notifications</h3>
+                            <div class="checkbox-group">
+                                <label>
+                                    <input type="checkbox" id="notify-critical" checked>
+                                    Notify on Critical Vulnerabilities
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="notify-scan-complete" checked>
+                                    Notify on Scan Completion
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="notify-new-cve" checked>
+                                    Notify on New CVEs
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- About Section -->
+                <section id="about-section" class="section">
+                    <h2>About VulnSpectra</h2>
+
+                    <div class="about-container">
+                        <div class="about-card">
+                            <h3>VulnSpectra v1.0.0</h3>
+                            <p>Intelligent Network Vulnerability & CVE Analysis Platform</p>
+
+                            <h4>Features</h4>
+                            <ul>
+                                <li>Advanced network scanning and host discovery</li>
+                                <li>Service detection and fingerprinting</li>
+                                <li>CVE intelligence from NVD database</li>
+                                <li>Risk analysis and scoring</li>
+                                <li>Professional reporting</li>
+                                <li>REST API integration</li>
+                            </ul>
+                        </div>
+
+                        <div class="about-card">
+                            <h3>Technology Stack</h3>
+                            <div class="tech-list">
+                                <span class="tech-badge">Python 3.8+</span>
+                                <span class="tech-badge">FastAPI</span>
+                                <span class="tech-badge">Chart.js</span>
+                                <span class="tech-badge">Java 11+</span>
+                                <span class="tech-badge">PostgreSQL</span>
+                                <span class="tech-badge">Docker</span>
+                            </div>
+                        </div>
+
+                        <div class="about-card">
+                            <h3>Documentation</h3>
+                            <ul>
+                                <li><a href="#">User Guide</a></li>
+                                <li><a href="#">API Documentation</a></li>
+                                <li><a href="#">GitHub Repository</a></li>
+                                <li><a href="#">Report Issues</a></li>
+                                <li><a href="#">Feature Requests</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
 
     <script src="app.js"></script>
 </body>

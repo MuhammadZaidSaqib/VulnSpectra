@@ -1,4 +1,4 @@
-// VulnSpectra Dashboard JavaScript
+// VulnSpectra Dashboard Enhanced JavaScript
 
 // API Configuration
 const API_BASE_URL = 'http://localhost:8000';
@@ -6,18 +6,34 @@ const API_BASE_URL = 'http://localhost:8000';
 // Global state
 let currentScanId = null;
 let allVulnerabilities = [];
+let allScans = [];
 let severityChart = null;
 let riskChart = null;
+let riskGaugeChart = null;
 
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', () => {
-    initializeNavigation();
-    initializeCharts();
-    initializeScanForm();
-    loadActiveScans();
+    console.log('VulnSpectra Dashboard: DOM Content Loaded');
+    try {
+        initializeNavigation();
+        console.log('✓ Navigation initialized');
+        initializeCharts();
+        console.log('✓ Charts initialized');
+        initializeScanForm();
+        console.log('✓ Scan form initialized');
+        initializeModals();
+        console.log('✓ Modals initialized');
+        initializeSettings();
+        console.log('✓ Settings initialized');
+        loadActiveScans();
+        console.log('✓ Active scans loaded');
 
-    // Refresh data every 10 seconds
-    setInterval(loadActiveScans, 10000);
+        // Refresh data every 30 seconds (reduced from 10s for performance)
+        setInterval(loadActiveScans, 30000);
+        console.log('✓ Dashboard ready!');
+    } catch (error) {
+        console.error('Dashboard initialization error:', error);
+    }
 });
 
 // Navigation
@@ -37,7 +53,10 @@ function initializeNavigation() {
 
             // Show corresponding section
             const sectionId = link.getAttribute('data-section') + '-section';
-            document.getElementById(sectionId).classList.add('active');
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.classList.add('active');
+            }
         });
     });
 }
@@ -70,7 +89,8 @@ function initializeCharts() {
                     position: 'bottom',
                     labels: {
                         color: '#e0e0e0',
-                        font: { size: 12 }
+                        font: { size: 12 },
+                        padding: 15
                     }
                 }
             }
@@ -82,15 +102,17 @@ function initializeCharts() {
     riskChart = new Chart(riskCtx, {
         type: 'line',
         data: {
-            labels: ['Scan 1', 'Scan 2', 'Scan 3', 'Scan 4', 'Scan 5'],
+            labels: [],
             datasets: [{
                 label: 'Risk Score',
-                data: [0, 0, 0, 0, 0],
+                data: [],
                 borderColor: '#00d9ff',
                 backgroundColor: 'rgba(0, 217, 255, 0.1)',
                 borderWidth: 3,
                 fill: true,
-                tension: 0.4
+                tension: 0.4,
+                pointRadius: 5,
+                pointBackgroundColor: '#00d9ff'
             }]
         },
         options: {
@@ -115,6 +137,36 @@ function initializeCharts() {
             }
         }
     });
+
+    // Risk Gauge Chart
+    try {
+        const gaugeCanvas = document.getElementById('risk-gauge-canvas');
+        if (gaugeCanvas) {
+            const gaugeCtx = gaugeCanvas.getContext('2d');
+            riskGaugeChart = new Chart(gaugeCtx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [0, 100],
+                        backgroundColor: ['#ff6b00', '#1a1f3a'],
+                        borderColor: '#00d9ff',
+                        borderWidth: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    circumference: 180,
+                    rotation: 270,
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+    } catch (e) {
+        console.log('Gauge chart not available');
+    }
 }
 
 // Scan Form
@@ -144,35 +196,180 @@ function initializeScanForm() {
     });
 }
 
+// Initialize Modals
+function initializeModals() {
+    const backdrop = document.getElementById('modal-backdrop');
+    const modals = document.querySelectorAll('.modal');
+
+    modals.forEach(modal => {
+        const closeBtn = modal.querySelector('.modal-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                modal.classList.remove('active');
+                backdrop.classList.remove('active');
+            });
+        }
+    });
+
+    backdrop.addEventListener('click', () => {
+        modals.forEach(m => m.classList.remove('active'));
+        backdrop.classList.remove('active');
+    });
+}
+
+// Initialize Settings
+function initializeSettings() {
+    const settingsForm = document.getElementById('settings-form');
+    const apiSettingsForm = document.getElementById('api-settings-form');
+
+    if (settingsForm) {
+        settingsForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            saveSettings();
+        });
+    }
+
+    if (apiSettingsForm) {
+        apiSettingsForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            saveAPISettings();
+        });
+    }
+
+    // Load saved settings
+    loadSettings();
+}
+
+function saveSettings() {
+    const timeout = document.getElementById('default-timeout').value;
+    const ports = document.getElementById('default-ports').value;
+    const threads = document.getElementById('max-threads').value;
+
+    localStorage.setItem('settings', JSON.stringify({
+        timeout: timeout,
+        ports: ports,
+        threads: threads
+    }));
+
+    showNotification('Settings saved successfully!', 'success');
+}
+
+function saveAPISettings() {
+    const apiKey = document.getElementById('nvd-api-key').value;
+    const rateLimit = document.getElementById('api-rate-limit').value;
+
+    localStorage.setItem('api-settings', JSON.stringify({
+        apiKey: apiKey,
+        rateLimit: rateLimit
+    }));
+
+    showNotification('API settings saved successfully!', 'success');
+}
+
+function loadSettings() {
+    const settings = JSON.parse(localStorage.getItem('settings') || '{}');
+    const apiSettings = JSON.parse(localStorage.getItem('api-settings') || '{}');
+
+    if (settings.timeout) {
+        document.getElementById('default-timeout').value = settings.timeout;
+    }
+    if (settings.ports) {
+        document.getElementById('default-ports').value = settings.ports;
+    }
+    if (settings.threads) {
+        document.getElementById('max-threads').value = settings.threads;
+    }
+
+    if (apiSettings.apiKey) {
+        document.getElementById('nvd-api-key').value = apiSettings.apiKey;
+    }
+    if (apiSettings.rateLimit) {
+        document.getElementById('api-rate-limit').value = apiSettings.rateLimit;
+    }
+}
+
 // Start Scan
 async function startScan(target, ports, timeout) {
     try {
+        // Process target - clean URL if needed
+        let processedTarget = target.trim();
+
+        // Remove protocol if present (http://, https://)
+        processedTarget = processedTarget.replace(/^https?:\/\//i, '');
+
+        // Remove trailing slash
+        processedTarget = processedTarget.replace(/\/$/, '');
+
+        // Remove path if present (take only domain/IP)
+        processedTarget = processedTarget.split('/')[0];
+
+        // Show processing message
+        showNotification('Processing target...', 'info');
+
         const response = await fetch(`${API_BASE_URL}/api/scan`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ target, ports, timeout })
+            body: JSON.stringify({
+                target: processedTarget,
+                ports,
+                timeout
+            })
         });
 
         if (!response.ok) {
-            throw new Error('Failed to start scan');
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Failed to start scan');
         }
 
         const data = await response.json();
         currentScanId = data.scan_id;
 
-        // Show progress
+        // Reset error state and show progress
+        document.getElementById('scan-error').classList.add('hidden');
         document.getElementById('scan-progress').classList.remove('hidden');
         document.getElementById('scan-form').style.display = 'none';
+        document.getElementById('progress-fill').style.background =
+            'linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)';
 
         // Poll for status
         pollScanStatus(currentScanId);
 
-        showNotification('Scan started successfully!', 'success');
+        showNotification(`Scan started for ${processedTarget}`, 'success');
 
     } catch (error) {
         console.error('Error starting scan:', error);
-        showNotification('Failed to start scan', 'error');
+
+        // Show error in the UI
+        document.getElementById('error-message').textContent =
+            `Failed to start scan: ${error.message}`;
+        document.getElementById('scan-error').classList.remove('hidden');
+        document.getElementById('scan-progress').classList.remove('hidden');
+        document.getElementById('scan-form').style.display = 'none';
+        document.getElementById('progress-text').textContent = 'Failed to start scan';
+
+        showNotification(`Failed to start scan: ${error.message}`, 'error');
     }
+}
+
+// Reset Scan Form
+function resetScanForm() {
+    // Hide progress and error sections
+    document.getElementById('scan-progress').classList.add('hidden');
+    document.getElementById('scan-error').classList.add('hidden');
+
+    // Show form
+    document.getElementById('scan-form').style.display = 'block';
+
+    // Reset progress bar
+    document.getElementById('progress-fill').style.width = '0%';
+    document.getElementById('progress-fill').style.background =
+        'linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)';
+    document.getElementById('progress-text').textContent = 'Initializing scan...';
+
+    // Clear error message
+    document.getElementById('error-message').textContent = '';
+
+    console.log('Scan form reset - ready for new scan');
 }
 
 // Poll Scan Status
@@ -201,14 +398,31 @@ async function pollScanStatus(scanId) {
                 showNotification('Scan completed!', 'success');
             } else if (data.status === 'failed') {
                 clearInterval(interval);
-                showNotification('Scan failed', 'error');
+
+                // Show error message with retry option
+                const errorMsg = data.error || 'Scan failed. Please check the target and try again.';
+                document.getElementById('error-message').textContent = errorMsg;
+                document.getElementById('scan-error').classList.remove('hidden');
+                document.getElementById('progress-text').textContent = 'Scan Failed';
+                document.getElementById('progress-fill').style.width = '0%';
+                document.getElementById('progress-fill').style.background = 'var(--danger)';
+
+                showNotification('Scan failed - Click "Start New Scan" to try again', 'error');
             }
 
         } catch (error) {
             console.error('Error polling scan status:', error);
             clearInterval(interval);
+
+            // Show connection error
+            document.getElementById('error-message').textContent =
+                'Connection error. Please check if the server is running.';
+            document.getElementById('scan-error').classList.remove('hidden');
+            document.getElementById('progress-text').textContent = 'Connection Error';
+
+            showNotification('Connection error - Cannot reach server', 'error');
         }
-    }, 2000); // Poll every 2 seconds
+    }, 2000);
 }
 
 // Load Scan Results
@@ -222,10 +436,13 @@ async function loadScanResults(scanId) {
 
         // Store vulnerabilities
         allVulnerabilities = data.vulnerabilities || [];
+        allScans.push(data);
 
         // Update tables
         updateVulnerabilitiesTable(allVulnerabilities);
         updateHostsTable(data.hosts || []);
+        updateServicesTable(data.services || []);
+        updateRiskMatrix(allVulnerabilities);
 
     } catch (error) {
         console.error('Error loading scan results:', error);
@@ -254,17 +471,33 @@ function updateDashboard(data) {
     severityChart.data.datasets[0].data = [criticalCount, highCount, mediumCount, lowCount];
     severityChart.update();
 
-    // Update risk chart (append new data)
-    riskChart.data.labels.push(`Scan ${riskChart.data.labels.length + 1}`);
+    // Update risk gauge
+    if (riskGaugeChart) {
+        riskGaugeChart.data.datasets[0].data = [riskScore, 100 - riskScore];
+        riskGaugeChart.update();
+    }
+
+    // Update risk chart
+    const timestamp = new Date().toLocaleTimeString();
+    riskChart.data.labels.push(timestamp);
     riskChart.data.datasets[0].data.push(riskScore);
 
-    // Keep only last 10 scans
     if (riskChart.data.labels.length > 10) {
         riskChart.data.labels.shift();
         riskChart.data.datasets[0].data.shift();
     }
 
     riskChart.update();
+
+    // Update statistics
+    updateStatistics(severityBreakdown);
+}
+
+function updateStatistics(breakdown) {
+    document.getElementById('critical-count').textContent = breakdown.CRITICAL?.length || 0;
+    document.getElementById('high-count').textContent = breakdown.HIGH?.length || 0;
+    document.getElementById('medium-count').textContent = breakdown.MEDIUM?.length || 0;
+    document.getElementById('low-count').textContent = breakdown.LOW?.length || 0;
 }
 
 // Update Vulnerabilities Table
@@ -293,9 +526,6 @@ function updateVulnerabilitiesTable(vulnerabilities) {
         `;
         tbody.appendChild(row);
     });
-
-    // Update all vulnerabilities table
-    updateAllVulnerabilitiesTable(vulnerabilities);
 }
 
 // Update All Vulnerabilities Table
@@ -355,6 +585,48 @@ function updateHostsTable(hosts) {
     });
 }
 
+// Update Services Table
+function updateServicesTable(services) {
+    const tbody = document.getElementById('services-tbody');
+
+    if (services.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="no-data">No services detected</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = '';
+
+    services.forEach(service => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${service.ip}</td>
+            <td>${service.port}</td>
+            <td>${service.service}</td>
+            <td>${service.product}</td>
+            <td>${service.version}</td>
+            <td>-</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// Update Risk Matrix
+function updateRiskMatrix(vulnerabilities) {
+    const matrix = document.getElementById('risk-matrix');
+    if (!matrix) return;
+
+    matrix.innerHTML = '';
+
+    const categories = ['Critical', 'High', 'Medium', 'Low'];
+    categories.forEach(cat => {
+        const count = vulnerabilities.filter(v => v.severity === cat.toUpperCase()).length;
+        const cell = document.createElement('div');
+        cell.className = `risk-matrix-cell badge-${cat.toLowerCase()}`;
+        cell.innerHTML = `<strong>${cat}</strong><br>${count}`;
+        matrix.appendChild(cell);
+    });
+}
+
 // Load Active Scans
 async function loadActiveScans() {
     try {
@@ -362,28 +634,46 @@ async function loadActiveScans() {
         const data = await response.json();
 
         const tbody = document.getElementById('active-scans-tbody');
+        const grid = document.getElementById('scans-grid');
 
         if (data.scans.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="no-data">No active scans</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="no-data">No active scans</td></tr>';
+            if (grid) grid.innerHTML = '<div class="no-data">No scans available</div>';
             return;
         }
 
-        tbody.innerHTML = '';
+        if (tbody) {
+            tbody.innerHTML = '';
+            data.scans.forEach(scan => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${scan.scan_id}</td>
+                    <td>${scan.target}</td>
+                    <td><span class="badge badge-${scan.status === 'completed' ? 'success' : 'warning'}">${scan.status}</span></td>
+                    <td>-</td>
+                    <td>${new Date(scan.started_at).toLocaleString()}</td>
+                    <td>
+                        <button class="btn-secondary" onclick="viewScanResults('${scan.scan_id}')">View</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
 
-        data.scans.forEach(scan => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${scan.scan_id}</td>
-                <td>${scan.target}</td>
-                <td><span class="badge badge-${scan.status === 'completed' ? 'success' : 'warning'}">${scan.status}</span></td>
-                <td>-</td>
-                <td>${new Date(scan.started_at).toLocaleString()}</td>
-                <td>
-                    <button class="btn-secondary" onclick="viewScanResults('${scan.scan_id}')">View</button>
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
+        if (grid) {
+            grid.innerHTML = '';
+            data.scans.forEach(scan => {
+                const card = document.createElement('div');
+                card.className = `scan-card ${scan.status}`;
+                card.innerHTML = `
+                    <h4>${scan.scan_id}</h4>
+                    <p>Target: ${scan.target}</p>
+                    <p>Status: ${scan.status}</p>
+                    <p>Started: ${new Date(scan.started_at).toLocaleString()}</p>
+                `;
+                grid.appendChild(card);
+            });
+        }
 
     } catch (error) {
         console.error('Error loading active scans:', error);
@@ -441,9 +731,16 @@ async function downloadReport(format) {
 }
 
 // Show Notification
-function showNotification(message, type) {
-    // Simple console notification
-    // In production, implement a proper toast/notification system
-    console.log(`[${type.toUpperCase()}] ${message}`);
+function showNotification(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.remove();
+    }, 5000);
 }
 
