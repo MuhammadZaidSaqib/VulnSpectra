@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VulnSpectra - SOC Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <h1>🛡️ VulnSpectra</h1>
+                <p>Intelligent Network Vulnerability & CVE Analysis Platform</p>
+            </div>
+            <div class="system-status">
+                <span class="status-indicator active"></span>
+                <span>System Online</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <nav>
+                    <ul>
+                        <li><a href="#" class="active" data-section="dashboard">📊 Dashboard</a></li>
+                        <li><a href="#" data-section="scan">🔍 New Scan</a></li>
+                        <li><a href="#" data-section="vulnerabilities">⚠️ Vulnerabilities</a></li>
+                        <li><a href="#" data-section="hosts">💻 Hosts</a></li>
+                        <li><a href="#" data-section="reports">📄 Reports</a></li>
+                    </ul>
+                </nav>
+            </aside>
+
+            <!-- Content Area -->
+            <main class="content">
+                <!-- Dashboard Section -->
+                <section id="dashboard-section" class="section active">
+                    <h2>Security Overview</h2>
+
+                    <!-- Summary Cards -->
+                    <div class="summary-grid">
+                        <div class="summary-card">
+                            <div class="card-icon">🖥️</div>
+                            <div class="card-content">
+                                <h3>Hosts Scanned</h3>
+                                <p class="card-value" id="hosts-scanned">0</p>
+                            </div>
+                        </div>
+
+                        <div class="summary-card">
+                            <div class="card-icon">🔌</div>
+                            <div class="card-content">
+                                <h3>Services Detected</h3>
+                                <p class="card-value" id="services-detected">0</p>
+                            </div>
+                        </div>
+
+                        <div class="summary-card alert">
+                            <div class="card-icon">⚠️</div>
+                            <div class="card-content">
+                                <h3>Vulnerabilities</h3>
+                                <p class="card-value" id="vulnerabilities-found">0</p>
+                            </div>
+                        </div>
+
+                        <div class="summary-card">
+                            <div class="card-icon">📊</div>
+                            <div class="card-content">
+                                <h3>Risk Score</h3>
+                                <p class="card-value" id="risk-score">0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="charts-grid">
+                        <div class="chart-card">
+                            <h3>Vulnerability Severity Distribution</h3>
+                            <canvas id="severity-chart"></canvas>
+                        </div>
+
+                        <div class="chart-card">
+                            <h3>Risk Score Trend</h3>
+                            <canvas id="risk-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Recent Vulnerabilities -->
+                    <div class="table-card">
+                        <h3>Recent Vulnerabilities</h3>
+                        <div class="table-container">
+                            <table id="vulnerabilities-table">
+                                <thead>
+                                    <tr>
+                                        <th>CVE ID</th>
+                                        <th>Host</th>
+                                        <th>Service</th>
+                                        <th>Severity</th>
+                                        <th>CVSS</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="vulnerabilities-tbody">
+                                    <tr>
+                                        <td colspan="6" class="no-data">No vulnerabilities found</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Scan Section -->
+                <section id="scan-section" class="section">
+                    <h2>New Vulnerability Scan</h2>
+
+                    <div class="scan-form-card">
+                        <form id="scan-form">
+                            <div class="form-group">
+                                <label for="target">Target IP/Range</label>
+                                <input type="text" id="target" name="target"
+                                       placeholder="192.168.1.10 or 192.168.1.0/24" required>
+                                <small>Enter a single IP address or CIDR range</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="ports">Port Range</label>
+                                <input type="text" id="ports" name="ports"
+                                       value="1-1000" placeholder="1-1000">
+                                <small>Examples: 1-1000, 80,443, 1-100,8000-9000</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="timeout">Timeout (seconds)</label>
+                                <input type="number" id="timeout" name="timeout"
+                                       value="2" min="1" max="10">
+                            </div>
+
+                            <button type="submit" class="btn-primary">
+                                <span>🔍 Start Scan</span>
+                            </button>
+                        </form>
+
+                        <div id="scan-progress" class="scan-progress hidden">
+                            <h3>Scan in Progress</h3>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="progress-fill"></div>
+                            </div>
+                            <p id="progress-text">Initializing scan...</p>
+                        </div>
+                    </div>
+
+                    <!-- Active Scans -->
+                    <div class="table-card">
+                        <h3>Active Scans</h3>
+                        <div class="table-container">
+                            <table id="active-scans-table">
+                                <thead>
+                                    <tr>
+                                        <th>Scan ID</th>
+                                        <th>Target</th>
+                                        <th>Status</th>
+                                        <th>Progress</th>
+                                        <th>Started</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="active-scans-tbody">
+                                    <tr>
+                                        <td colspan="6" class="no-data">No active scans</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Vulnerabilities Section -->
+                <section id="vulnerabilities-section" class="section">
+                    <h2>Vulnerability Management</h2>
+
+                    <div class="filter-bar">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn critical" data-filter="CRITICAL">Critical</button>
+                        <button class="filter-btn high" data-filter="HIGH">High</button>
+                        <button class="filter-btn medium" data-filter="MEDIUM">Medium</button>
+                        <button class="filter-btn low" data-filter="LOW">Low</button>
+                    </div>
+
+                    <div class="table-card">
+                        <div class="table-container">
+                            <table id="all-vulnerabilities-table">
+                                <thead>
+                                    <tr>
+                                        <th>CVE ID</th>
+                                        <th>IP Address</th>
+                                        <th>Port</th>
+                                        <th>Service</th>
+                                        <th>Severity</th>
+                                        <th>CVSS Score</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="all-vulnerabilities-tbody">
+                                    <tr>
+                                        <td colspan="7" class="no-data">No vulnerabilities to display</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Hosts Section -->
+                <section id="hosts-section" class="section">
+                    <h2>Discovered Hosts</h2>
+
+                    <div class="table-card">
+                        <div class="table-container">
+                            <table id="hosts-table">
+                                <thead>
+                                    <tr>
+                                        <th>IP Address</th>
+                                        <th>Hostname</th>
+                                        <th>Status</th>
+                                        <th>Open Ports</th>
+                                        <th>Vulnerabilities</th>
+                                        <th>Risk Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="hosts-tbody">
+                                    <tr>
+                                        <td colspan="6" class="no-data">No hosts discovered</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Reports Section -->
+                <section id="reports-section" class="section">
+                    <h2>Reports</h2>
+
+                    <div class="reports-grid">
+                        <div class="report-card">
+                            <h3>📄 JSON Report</h3>
+                            <p>Download raw scan data in JSON format</p>
+                            <button class="btn-secondary" onclick="downloadReport('json')">Download JSON</button>
+                        </div>
+
+                        <div class="report-card">
+                            <h3>📊 HTML Report</h3>
+                            <p>Download formatted security report</p>
+                            <button class="btn-secondary" onclick="downloadReport('html')">Download HTML</button>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
