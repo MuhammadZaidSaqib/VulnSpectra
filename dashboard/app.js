@@ -1,4 +1,3 @@
-// Dashboard client for VulnSpectra platform UI.
 const API_BASE = window.location.origin;
 
 let activeScanId = null;
