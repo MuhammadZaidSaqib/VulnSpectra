@@ -7,6 +7,10 @@
 [![Status](https://img.shields.io/badge/status-Production-brightgreen.svg)]()
 
 VulnSpectra is an enterprise-grade, automated vulnerability scanning platform combining network reconnaissance, service detection, CVE intelligence, and real-time risk analysis with a professional Security Operations Center (SOC) dashboard.
+<img width="1851" height="925" alt="Screenshot 2026-03-09 001833" src="https://github.com/user-attachments/assets/04216a4e-7272-4cd9-987d-0bd398ea2bbb" />
+<img width="1844" height="902" alt="Screenshot 2026-03-09 001906" src="https://github.com/user-attachments/assets/faab319a-b627-417b-8205-97e0ef3040eb" />
+<img width="1844" height="934" alt="Screenshot 2026-03-09 001918" src="https://github.com/user-attachments/assets/199da444-3f82-46b3-b957-6b40cd2facac" />
+
 
 ---
 
