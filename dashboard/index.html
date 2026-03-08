@@ -3,522 +3,418 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VulnSpectra - SOC Dashboard</title>
-    <link rel="stylesheet" href="styles.css?v=20260308j">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* Fallback styles if CSS fails to load */
-        body { background: #0a0e27; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-        .dashboard-container { display: flex; flex-direction: column; min-height: 100vh; }
-        .header { background: linear-gradient(135deg, #1a1f3a 0%, #252d4a 100%); padding: 20px 40px; border-bottom: 2px solid #00d9ff; }
-        .main-content { display: flex; flex: 1; }
-        .sidebar { width: 280px; background: linear-gradient(180deg, #1a1f3a 0%, #252d4a 100%); padding: 20px 0; overflow-y: auto; max-height: calc(100vh - 80px); }
-        .content { flex: 1; padding: 40px; overflow-y: auto; }
-        .section { display: none; }
-        .section.active { display: block; }
-    </style>
+    <title>VulnSpectra | SOC Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css?v=20260308-soc1">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
-    <!-- Toast Notifications -->
-    <div id="toast-container" class="toast-container"></div>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <h1>VulnSpectra</h1>
+                <p>Security Operations</p>
+            </div>
+            <nav class="nav">
+                <p class="nav-title">MAIN</p>
+                <a href="#dashboard-top" data-target="dashboard-top" data-view="dashboard" class="active">Dashboard</a>
+                <a href="#scan-panel" data-target="scan-panel" data-view="new-scan">New Scan</a>
+                <a href="#tables-panel" data-target="tables-panel" data-view="active-scans">Active Scans</a>
 
-    <!-- Modal Dialogs -->
-    <div id="modal-backdrop" class="modal-backdrop"></div>
-    <div id="scan-details-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Scan Details</h3>
-                <button class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body" id="scan-details-body">
-                <!-- Dynamically populated -->
-            </div>
-        </div>
-    </div>
+                <p class="nav-title">ANALYSIS</p>
+                <a href="#vulnerabilities-panel" data-target="vulnerabilities-panel" data-view="vulnerabilities">Vulnerabilities</a>
+                <a href="#hosts-panel" data-target="hosts-panel" data-view="hosts">Hosts</a>
+                <a href="#services-panel" data-target="services-panel" data-view="services">Services</a>
+                <a href="#charts-panel" data-target="charts-panel" data-view="risk-matrix">Risk Matrix</a>
 
-    <div id="cve-details-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>CVE Details</h3>
-                <button class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body" id="cve-details-body">
-                <!-- Dynamically populated -->
-            </div>
-        </div>
-    </div>
+                <p class="nav-title">TOOLS</p>
+                <a href="#reports-panel" data-target="reports-panel" data-view="reports">Reports</a>
+                <a href="#settings-panel" data-target="settings-panel" data-view="settings">Settings</a>
+                <a href="#about-panel" data-target="about-panel" data-view="about">About</a>
+            </nav>
+        </aside>
 
-    <div class="dashboard-container">
-        <!-- Header -->
-        <header class="header">
-            <div class="logo">
-                <h1>🛡️ VulnSpectra</h1>
-                <p>Intelligent Network Vulnerability & CVE Analysis Platform</p>
-            </div>
-            <div class="system-status">
-                <span class="status-indicator active"></span>
-                <span>System Online</span>
-            </div>
-        </header>
-
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Sidebar -->
-            <aside class="sidebar">
-                <div class="sidebar-brand">
-                    <span class="brand-icon">🛡️</span>
-                    <span class="brand-text">VulnSpectra</span>
-                </div>
-                <nav>
-                    <div class="nav-section">
-                        <h4>MAIN</h4>
-                        <ul>
-                            <li><a href="#" class="active" data-section="dashboard"><i class="fas fa-chart-line"></i> Dashboard</a></li>
-                            <li><a href="#" data-section="scan"><i class="fas fa-search"></i> New Scan</a></li>
-                            <li><a href="#" data-section="active-scans"><i class="fas fa-spinner"></i> Active Scans</a></li>
-                        </ul>
-                    </div>
-                    <div class="nav-section">
-                        <h4>ANALYSIS</h4>
-                        <ul>
-                            <li><a href="#" data-section="vulnerabilities"><i class="fas fa-exclamation-triangle"></i> Vulnerabilities</a></li>
-                            <li><a href="#" data-section="hosts"><i class="fas fa-server"></i> Hosts</a></li>
-                            <li><a href="#" data-section="services"><i class="fas fa-plug"></i> Services</a></li>
-                            <li><a href="#" data-section="risk-matrix"><i class="fas fa-th"></i> Risk Matrix</a></li>
-                        </ul>
-                    </div>
-                    <div class="nav-section">
-                        <h4>TOOLS</h4>
-                        <ul>
-                            <li><a href="#" data-section="reports"><i class="fas fa-file-alt"></i> Reports</a></li>
-                            <li><a href="#" data-section="settings"><i class="fas fa-cog"></i> Settings</a></li>
-                            <li><a href="#" data-section="about"><i class="fas fa-info-circle"></i> About</a></li>
-                        </ul>
-                    </div>
-                </nav>
-            </aside>
-
-            <!-- Content Area -->
-            <main class="content">
-                <!-- Dashboard Section -->
-                <section id="dashboard-section" class="section active">
+        <main class="main" id="dashboard-top">
+            <header class="topbar">
+                <div>
                     <h2>Security Overview</h2>
+                    <p>Intelligent network vulnerability and CVE analysis platform</p>
+                </div>
+                <div class="topbar-right">
+                    <span class="status" id="system-status">API Online</span>
+                    <span class="clock" id="live-clock">--:--</span>
+                </div>
+            </header>
 
-                    <!-- Summary Cards with Trends -->
-                    <div class="summary-grid">
-                        <div class="summary-card">
-                            <div class="card-icon">🖥️</div>
-                            <div class="card-content">
-                                <h3>Hosts Scanned</h3>
-                                <p class="card-value" id="hosts-scanned">0</p>
-                                <span class="card-trend" id="hosts-trend">↑ 0%</span>
-                            </div>
-                        </div>
+            <section class="kpi-grid view-section" id="summary-panel">
+                <article class="kpi-card">
+                    <h3>Total Scans</h3>
+                    <p id="total-scans">0</p>
+                </article>
+                <article class="kpi-card">
+                    <h3>Hosts Scanned</h3>
+                    <p id="hosts-scanned">0</p>
+                </article>
+                <article class="kpi-card">
+                    <h3>Services Detected</h3>
+                    <p id="services-detected">0</p>
+                </article>
+                <article class="kpi-card danger">
+                    <h3>Vulnerabilities</h3>
+                    <p id="vulnerabilities-found">0</p>
+                </article>
+                <article class="kpi-card">
+                    <h3>Avg Risk Score</h3>
+                    <p id="risk-score">0.0</p>
+                </article>
+            </section>
 
-                        <div class="summary-card">
-                            <div class="card-icon">🔌</div>
-                            <div class="card-content">
-                                <h3>Services Detected</h3>
-                                <p class="card-value" id="services-detected">0</p>
-                                <span class="card-trend" id="services-trend">↑ 0%</span>
-                            </div>
-                        </div>
+            <section class="panel view-section" id="scan-panel">
+                <h3>Start Scan</h3>
+                <form id="scan-form" class="scan-form">
+                    <label>
+                        Target
+                        <input id="target" required placeholder="127.0.0.1, example.com, 192.168.1.0/24">
+                    </label>
+                    <label>
+                        Ports
+                        <input id="ports" value="80,443" placeholder="80,443 or 1-1000">
+                    </label>
+                    <label>
+                        Timeout (s)
+                        <input id="timeout" type="number" min="1" max="30" value="2">
+                    </label>
+                    <button type="submit">Start Scan</button>
+                </form>
 
-                        <div class="summary-card alert">
-                            <div class="card-icon">⚠️</div>
-                            <div class="card-content">
-                                <h3>Vulnerabilities</h3>
-                                <p class="card-value" id="vulnerabilities-found">0</p>
-                                <span class="card-trend critical" id="vuln-trend">↑ 0%</span>
-                            </div>
-                        </div>
-
-                        <div class="summary-card">
-                            <div class="card-icon">📊</div>
-                            <div class="card-content">
-                                <h3>Risk Score</h3>
-                                <div class="risk-gauge" id="risk-gauge">
-                                    <canvas id="risk-gauge-canvas"></canvas>
-                                    <span class="gauge-value" id="risk-score">0</span>
-                                </div>
-                            </div>
-                        </div>
+                <div class="progress hidden" id="scan-progress-wrap">
+                    <div class="progress-header">
+                        <span id="progress-label">Running scan...</span>
+                        <span id="progress-value">0%</span>
                     </div>
-
-                    <!-- Charts Row -->
-                    <div class="charts-grid">
-                        <div class="chart-card">
-                            <h3>Vulnerability Severity Distribution</h3>
-                            <canvas id="severity-chart"></canvas>
-                        </div>
-
-                        <div class="chart-card">
-                            <h3>Risk Score Trend</h3>
-                            <canvas id="risk-chart"></canvas>
-                        </div>
+                    <div class="progress-track">
+                        <div id="progress-fill"></div>
                     </div>
+                </div>
+                <p id="scan-error" class="error"></p>
+            </section>
 
-                    <!-- Recent Vulnerabilities -->
-                    <div class="table-card">
-                        <h3>Recent Vulnerabilities</h3>
-                        <div class="table-container">
-                            <table id="vulnerabilities-table">
-                                <thead>
-                                    <tr>
-                                        <th>CVE ID</th>
-                                        <th>Host</th>
-                                        <th>Service</th>
-                                        <th>Severity</th>
-                                        <th>CVSS</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="vulnerabilities-tbody">
-                                    <tr>
-                                        <td colspan="6" class="no-data">No vulnerabilities found</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Scan Section -->
-                <section id="scan-section" class="section">
-                    <h2>New Vulnerability Scan</h2>
-
-                    <div class="scan-form-card">
-                        <form id="scan-form">
-                            <div class="form-group">
-                                <label for="target">Target IP/URL/Range</label>
-                                <input type="text" id="target" name="target"
-                                       placeholder="192.168.1.10, example.com, or 192.168.1.0/24" required>
-                                <small>Enter IP address, website URL, domain name, or CIDR range</small>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="ports">Port Range</label>
-                                <input type="text" id="ports" name="ports"
-                                       value="80,443" placeholder="80,443">
-                                <small>Examples: 80,443, 1-1000, 8000-9000</small>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="timeout">Timeout (seconds)</label>
-                                <input type="number" id="timeout" name="timeout"
-                                       value="2" min="1" max="10">
-                            </div>
-
-                            <button type="submit" class="btn-primary">
-                                <span>🔍 Start Scan</span>
-                            </button>
-                        </form>
-
-                        <div id="scan-progress" class="scan-progress hidden">
-                            <h3>Scan in Progress</h3>
-                            <div class="progress-bar">
-                                <div class="progress-fill" id="progress-fill"></div>
-                            </div>
-                            <p id="progress-text">Initializing scan...</p>
-                            <div id="scan-error" class="scan-error hidden">
-                                <p id="error-message"></p>
-                                <button type="button" class="btn-primary" onclick="resetScanForm()">
-                                    <span>🔄 Start New Scan</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Active Scans -->
-                    <div class="table-card">
-                        <h3>Active Scans</h3>
-                        <div class="table-container">
-                            <table id="active-scans-table">
-                                <thead>
-                                    <tr>
-                                        <th>Scan ID</th>
-                                        <th>Target</th>
-                                        <th>Status</th>
-                                        <th>Progress</th>
-                                        <th>Started</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="active-scans-tbody">
-                                    <tr>
-                                        <td colspan="6" class="no-data">No active scans</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Vulnerabilities Section -->
-                <section id="vulnerabilities-section" class="section">
-                    <h2>Vulnerability Management</h2>
-
-                    <div class="filter-bar">
-                        <button class="filter-btn active" data-filter="all">All</button>
-                        <button class="filter-btn critical" data-filter="CRITICAL">Critical</button>
-                        <button class="filter-btn high" data-filter="HIGH">High</button>
-                        <button class="filter-btn medium" data-filter="MEDIUM">Medium</button>
-                        <button class="filter-btn low" data-filter="LOW">Low</button>
-                    </div>
-
-                    <div class="table-card">
-                        <div class="table-container">
-                            <table id="all-vulnerabilities-table">
-                                <thead>
-                                    <tr>
-                                        <th>CVE ID</th>
-                                        <th>IP Address</th>
-                                        <th>Port</th>
-                                        <th>Service</th>
-                                        <th>Severity</th>
-                                        <th>CVSS Score</th>
-                                        <th>Description</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="all-vulnerabilities-tbody">
-                                    <tr>
-                                        <td colspan="7" class="no-data">No vulnerabilities to display</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Hosts Section -->
-                <section id="hosts-section" class="section">
-                    <h2>Discovered Hosts</h2>
-
-                    <div class="table-card">
-                        <div class="table-container">
-                            <table id="hosts-table">
-                                <thead>
-                                    <tr>
-                                        <th>IP Address</th>
-                                        <th>Hostname</th>
-                                        <th>Status</th>
-                                        <th>Open Ports</th>
-                                        <th>Vulnerabilities</th>
-                                        <th>Risk Score</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="hosts-tbody">
-                                    <tr>
-                                        <td colspan="6" class="no-data">No hosts discovered</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Reports Section -->
-                <section id="reports-section" class="section">
-                    <h2>Reports</h2>
-
-                    <div class="reports-grid">
-                        <div class="report-card">
-                            <h3>📄 JSON Report</h3>
-                            <p>Download raw scan data in JSON format</p>
-                            <button class="btn-secondary" onclick="downloadReport('json')">Download JSON</button>
-                        </div>
-
-                        <div class="report-card">
-                            <h3>📊 HTML Report</h3>
-                            <p>Download formatted security report</p>
-                            <button class="btn-secondary" onclick="downloadReport('html')">Download HTML</button>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Services Section -->
-                <section id="services-section" class="section">
-                    <h2>Detected Services</h2>
-
-                    <div class="filter-bar">
-                        <input type="text" id="services-search" placeholder="Search services..." class="search-input">
-                        <select id="services-filter" class="filter-select">
-                            <option value="">All Services</option>
-                            <option value="HTTP">HTTP/HTTPS</option>
-                            <option value="SSH">SSH</option>
-                            <option value="FTP">FTP</option>
-                            <option value="Database">Database</option>
-                        </select>
-                    </div>
-
-                    <div class="table-card">
-                        <div class="table-container">
-                            <table id="services-table">
-                                <thead>
-                                    <tr>
-                                        <th>IP Address</th>
-                                        <th>Port</th>
-                                        <th>Service</th>
-                                        <th>Product</th>
-                                        <th>Version</th>
-                                        <th>Vulnerabilities</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="services-tbody">
-                                    <tr>
-                                        <td colspan="6" class="no-data">No services detected</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Risk Matrix Section -->
-                <section id="risk-matrix-section" class="section">
+            <section class="view-section" id="charts-panel">
+                <div class="risk-matrix-header">
                     <h2>Risk Matrix</h2>
+                    <p class="muted-text">Comprehensive vulnerability risk assessment and severity analysis</p>
+                </div>
 
-                    <div class="risk-matrix-container">
-                        <div class="risk-matrix-grid" id="risk-matrix">
-                            <!-- Dynamically populated -->
+                <!-- Severity Summary Cards -->
+                <div class="severity-cards">
+                    <article class="severity-card critical-card">
+                        <div class="severity-icon">⚠️</div>
+                        <div class="severity-content">
+                            <h4>Critical</h4>
+                            <p class="severity-count" id="risk-critical-count">0</p>
                         </div>
+                    </article>
+                    <article class="severity-card high-card">
+                        <div class="severity-icon">🔴</div>
+                        <div class="severity-content">
+                            <h4>High</h4>
+                            <p class="severity-count" id="risk-high-count">0</p>
+                        </div>
+                    </article>
+                    <article class="severity-card medium-card">
+                        <div class="severity-icon">🟡</div>
+                        <div class="severity-content">
+                            <h4>Medium</h4>
+                            <p class="severity-count" id="risk-medium-count">0</p>
+                        </div>
+                    </article>
+                    <article class="severity-card low-card">
+                        <div class="severity-icon">🟢</div>
+                        <div class="severity-content">
+                            <h4>Low</h4>
+                            <p class="severity-count" id="risk-low-count">0</p>
+                        </div>
+                    </article>
+                </div>
+
+                <!-- Priority Breakdown Cards -->
+                <div class="priority-cards">
+                    <article class="priority-card critical-priority">
+                        <h4>CRITICAL ISSUES</h4>
+                        <p class="priority-count" id="critical-issues-count">0</p>
+                    </article>
+                    <article class="priority-card high-priority">
+                        <h4>HIGH PRIORITY</h4>
+                        <p class="priority-count" id="high-priority-count">0</p>
+                    </article>
+                    <article class="priority-card medium-priority">
+                        <h4>MEDIUM PRIORITY</h4>
+                        <p class="priority-count" id="medium-priority-count">0</p>
+                    </article>
+                    <article class="priority-card low-priority">
+                        <h4>LOW PRIORITY</h4>
+                        <p class="priority-count" id="low-priority-count">0</p>
+                    </article>
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="charts-grid">
+                    <article class="panel">
+                        <h3>Severity Distribution</h3>
+                        <canvas id="severity-chart"></canvas>
+                    </article>
+                    <article class="panel">
+                        <h3>Risk Trend</h3>
+                        <canvas id="risk-chart"></canvas>
+                    </article>
+                </div>
+            </section>
+
+            <section class="tables-grid view-section" id="tables-panel">
+                <article class="panel">
+                    <h3>Recent Scans</h3>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Scan ID</th>
+                                    <th>Target</th>
+                                    <th>Status</th>
+                                    <th>Services</th>
+                                    <th>Vulns</th>
+                                    <th>Risk</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scans-table-body">
+                                <tr><td colspan="7">No scans yet</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+
+                <article class="panel">
+                    <h3>Recent Vulnerabilities</h3>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>CVE</th>
+                                    <th>Host</th>
+                                    <th>Service</th>
+                                    <th>Severity</th>
+                                    <th>CVSS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vulns-table-body">
+                                <tr><td colspan="5">No vulnerabilities yet</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+            </section>
+
+            <section class="panel view-section" id="vulnerabilities-panel">
+                <h3>Vulnerabilities Analysis</h3>
+                <p class="muted-text">Complete list of detected vulnerabilities across all scans</p>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>CVE ID</th>
+                                <th>Host</th>
+                                <th>Port</th>
+                                <th>Service</th>
+                                <th>Severity</th>
+                                <th>CVSS Score</th>
+                                <th>Published</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vulnerabilities-table-body">
+                            <tr><td colspan="8">No vulnerability data available</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel view-section" id="hosts-panel">
+                <h3>Discovered Hosts</h3>
+                <p class="muted-text">Network hosts identified during scans</p>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>IP Address</th>
+                                <th>Hostname</th>
+                                <th>Status</th>
+                                <th>Open Ports</th>
+                                <th>Services</th>
+                                <th>Vulnerabilities</th>
+                                <th>Risk Score</th>
+                                <th>Last Seen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hosts-table-body">
+                            <tr><td colspan="8">No host data available</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel view-section" id="services-panel">
+                <h3>Detected Services</h3>
+                <p class="muted-text">Running services and their versions identified across network</p>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Host</th>
+                                <th>Port</th>
+                                <th>Protocol</th>
+                                <th>Service</th>
+                                <th>Version</th>
+                                <th>Banner</th>
+                                <th>Vulnerabilities</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="services-table-body">
+                            <tr><td colspan="8">No service data available</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel view-section" id="settings-panel">
+                <h3>Settings</h3>
+                <div class="settings-grid">
+                    <label>
+                        Default Target
+                        <input id="setting-default-target" placeholder="127.0.0.1">
+                    </label>
+                    <label>
+                        Default Ports
+                        <input id="setting-default-ports" placeholder="80,443">
+                    </label>
+                    <label>
+                        Default Timeout (s)
+                        <input id="setting-default-timeout" type="number" min="1" max="30" value="2">
+                    </label>
+                    <label>
+                        Dashboard Refresh (s)
+                        <input id="setting-refresh-seconds" type="number" min="5" max="120" value="8">
+                    </label>
+                </div>
+                <div class="settings-actions">
+                    <button id="save-settings-btn" type="button">Save Settings</button>
+                    <button id="reset-settings-btn" type="button" class="secondary-btn">Reset Defaults</button>
+                </div>
+                <p class="error" id="settings-message"></p>
+            </section>
+
+            <section class="panel view-section" id="reports-panel">
+                <h3>Report Center</h3>
+                <p class="muted-text">Download reports for the latest completed scan directly from backend endpoints.</p>
+                <div class="report-center-actions">
+                    <button id="download-latest-html-btn" type="button" class="report-btn">Download Latest HTML</button>
+                    <button id="download-latest-json-btn" type="button" class="report-btn">Download Latest JSON</button>
+                </div>
+                <p class="error" id="reports-message"></p>
+            </section>
+
+            <section class="panel view-section" id="about-panel">
+                <h3>VulnSpectra – Security Overview</h3>
+                <p style="margin-bottom: 16px;">
+                    VulnSpectra is an intelligent cybersecurity analysis platform designed to perform automated
+                    network vulnerability scanning and CVE correlation. The system provides security teams with
+                    real-time insights into network exposure, enabling proactive identification and mitigation of
+                    security risks across infrastructure.
+                </p>
+                <p style="margin-bottom: 24px;">
+                    The platform integrates network scanning, service fingerprinting, vulnerability detection, and
+                    risk analytics into a centralized dashboard. By combining automated scanning techniques with
+                    CVE database matching, VulnSpectra helps security analysts quickly detect potential threats and
+                    prioritize remediation based on severity and risk levels.
+                </p>
+
+                <div class="about-grid">
+                    <div>
+                        <h4>Platform</h4>
+                        <p>
+                            The VulnSpectra platform performs comprehensive network security assessments by identifying
+                            active hosts, open ports, and running services. It utilizes service fingerprinting
+                            techniques to determine software versions and compares them against known vulnerabilities
+                            listed in CVE databases.
+                        </p>
+                        <p><strong>Key capabilities include:</strong></p>
+                        <ul style="margin: 8px 0; padding-left: 20px; line-height: 1.6;">
+                            <li>Network host discovery</li>
+                            <li>Service fingerprinting and port analysis</li>
+                            <li>Automated CVE vulnerability matching</li>
+                            <li>Risk scoring and prioritization</li>
+                            <li>Security reporting and historical scan tracking</li>
+                        </ul>
+                        <p>
+                            These capabilities enable organizations to continuously monitor their infrastructure and
+                            detect vulnerabilities before they can be exploited by attackers.
+                        </p>
                     </div>
 
-                    <div class="risk-stats">
-                        <div class="stat-box">
-                            <h4>Critical Issues</h4>
-                            <p id="critical-count" class="stat-value critical">0</p>
-                        </div>
-                        <div class="stat-box">
-                            <h4>High Priority</h4>
-                            <p id="high-count" class="stat-value high">0</p>
-                        </div>
-                        <div class="stat-box">
-                            <h4>Medium Priority</h4>
-                            <p id="medium-count" class="stat-value medium">0</p>
-                        </div>
-                        <div class="stat-box">
-                            <h4>Low Priority</h4>
-                            <p id="low-count" class="stat-value low">0</p>
-                        </div>
+                    <div>
+                        <h4>Backend Architecture</h4>
+                        <p>
+                            The backend of VulnSpectra is built using FastAPI, providing a high-performance
+                            asynchronous API layer for scan orchestration and data processing. The application uses
+                            SQLAlchemy ORM for database management and SQLite for lightweight storage of scan history,
+                            vulnerabilities, and risk metrics.
+                        </p>
+                        <p><strong>Core backend components include:</strong></p>
+                        <ul style="margin: 8px 0; padding-left: 20px; line-height: 1.6;">
+                            <li>Scan management engine</li>
+                            <li>CVE correlation system</li>
+                            <li>Database storage for scan results</li>
+                            <li>Report generation module</li>
+                            <li>API endpoints for dashboard integration</li>
+                        </ul>
+                        <p>
+                            This architecture ensures efficient data handling, scalable scan processing, and reliable
+                            storage of vulnerability intelligence.
+                        </p>
                     </div>
-                </section>
 
-                <!-- Active Scans Section -->
-                <section id="active-scans-section" class="section">
-                    <h2>Active & Recent Scans</h2>
+                    <div>
+                        <h4>Dashboard</h4>
+                        <p>
+                            The VulnSpectra dashboard acts as a Security Operations Center (SOC) style monitoring
+                            interface, presenting real-time insights into system security posture.
+                        </p>
+                        <p><strong>The dashboard provides:</strong></p>
+                        <ul style="margin: 8px 0; padding-left: 20px; line-height: 1.6;">
+                            <li>Real-time scan progress monitoring</li>
+                            <li>Vulnerability severity distribution</li>
+                            <li>Risk trend visualization</li>
+                            <li>Recent scan activity</li>
+                            <li>Live vulnerability feed</li>
+                        </ul>
+                        <p>
+                            Security analysts can quickly assess system exposure, monitor ongoing scans, and track
+                            remediation progress directly from the dashboard.
+                        </p>
 
-                    <div class="scans-grid" id="scans-grid">
-                        <!-- Dynamically populated -->
+                        <h4 style="margin-top: 20px;">System Status</h4>
+                        <p>
+                            The platform continuously monitors its operational state and displays the system status
+                            indicator. When the system is running normally, the dashboard displays
+                            <strong style="color: #88f5c1;">"System Online"</strong>, indicating that all scanning
+                            services and backend components are active.
+                        </p>
                     </div>
-                </section>
+                </div>
+            </section>
+        </main>
+    </div>
 
-                <!-- Settings Section -->
-                <section id="settings-section" class="section">
-                    <h2>Settings</h2>
-
-                    <div class="settings-grid">
-                        <div class="settings-card">
-                            <h3>Scan Settings</h3>
-                            <form id="settings-form">
-                                <div class="form-group">
-                                    <label>Default Timeout (seconds)</label>
-                                    <input type="number" id="default-timeout" value="2" min="1" max="30">
-                                </div>
-                                <div class="form-group">
-                                    <label>Default Port Range</label>
-                                    <input type="text" id="default-ports" value="1-1000">
-                                </div>
-                                <div class="form-group">
-                                    <label>Max Threads</label>
-                                    <input type="number" id="max-threads" value="100" min="1" max="500">
-                                </div>
-                                <button type="submit" class="btn-primary">Save Settings</button>
-                            </form>
-                        </div>
-
-                        <div class="settings-card">
-                            <h3>API Configuration</h3>
-                            <form id="api-settings-form">
-                                <div class="form-group">
-                                    <label>NVD API Key</label>
-                                    <input type="password" id="nvd-api-key" placeholder="Enter your API key">
-                                </div>
-                                <div class="form-group">
-                                    <label>API Rate Limit (req/sec)</label>
-                                    <input type="number" id="api-rate-limit" value="0.6" min="0.1" step="0.1">
-                                </div>
-                                <button type="submit" class="btn-primary">Save API Settings</button>
-                            </form>
-                        </div>
-
-                        <div class="settings-card">
-                            <h3>Notifications</h3>
-                            <div class="checkbox-group">
-                                <label>
-                                    <input type="checkbox" id="notify-critical" checked>
-                                    Notify on Critical Vulnerabilities
-                                </label>
-                                <label>
-                                    <input type="checkbox" id="notify-scan-complete" checked>
-                                    Notify on Scan Completion
-                                </label>
-                                <label>
-                                    <input type="checkbox" id="notify-new-cve" checked>
-                                    Notify on New CVEs
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- About Section -->
-                <section id="about-section" class="section">
-                    <h2>About VulnSpectra</h2>
-
-                    <div class="about-container">
-                        <div class="about-card">
-                            <h3>VulnSpectra v1.0.0</h3>
-                            <p>Intelligent Network Vulnerability & CVE Analysis Platform</p>
-
-                            <h4>Features</h4>
-                            <ul>
-                                <li>Advanced network scanning and host discovery</li>
-                                <li>Service detection and fingerprinting</li>
-                                <li>CVE intelligence from NVD database</li>
-                                <li>Risk analysis and scoring</li>
-                                <li>Professional reporting</li>
-                                <li>REST API integration</li>
-                            </ul>
-                        </div>
-
-                        <div class="about-card">
-                            <h3>Technology Stack</h3>
-                            <div class="tech-list">
-                                <span class="tech-badge">Python 3.8+</span>
-                                <span class="tech-badge">FastAPI</span>
-                                <span class="tech-badge">Chart.js</span>
-                                <span class="tech-badge">Java 11+</span>
-                                <span class="tech-badge">PostgreSQL</span>
-                                <span class="tech-badge">Docker</span>
-                            </div>
-                        </div>
-
-                        <div class="about-card">
-                            <h3>Documentation</h3>
-                            <ul>
-                                <li><a href="#">User Guide</a></li>
-                                <li><a href="#">API Documentation</a></li>
-                                <li><a href="#">GitHub Repository</a></li>
-                                <li><a href="#">Report Issues</a></li>
-                                <li><a href="#">Feature Requests</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
-
-    <script src="app.js?v=20260308j"></script>
+    <script src="/static/app.js?v=20260308-soc1"></script>
 </body>
 </html>
 

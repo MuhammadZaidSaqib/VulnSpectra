@@ -1,7 +1,3 @@
-"""
-VulnSpectra - Intelligent Network Vulnerability & CVE Analysis Platform
-Main Entry Point
-"""
 import argparse
 import sys
 import logging
@@ -100,9 +96,8 @@ Examples:
         # Wait for API to start
         time.sleep(2)
 
-        # Open dashboard in browser
-        dashboard_path = os.path.join(os.getcwd(), 'dashboard', 'index.html')
-        webbrowser.open(f'file:///{dashboard_path}')
+        # Open dashboard in browser (served by FastAPI)
+        webbrowser.open('http://localhost:8000/dashboard')
 
         logger.info("Dashboard opened in browser. Press Ctrl+C to stop.")
 

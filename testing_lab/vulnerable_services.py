@@ -7,10 +7,6 @@ import socket
 import threading
 import time
 import logging
-from flask import Flask, request
-from pyftpdlib.authorizers import DummyAuthorizer
-from pyftpdlib.handlers import FTPHandler
-from pyftpdlib.servers import FTPServer
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +51,9 @@ class VulnerableServicesLab:
         # Wait a moment for all services to start
         time.sleep(1)
 
+        # Ensure expected ports are reachable; recover missing FTP if needed.
+        self._verify_and_recover_services()
+
         # Display running services
         logger.info("\n✓ All services started successfully!\n")
         logger.info("Services running on 127.0.0.1:")
@@ -67,73 +66,108 @@ class VulnerableServicesLab:
         logger.info("Press Ctrl+C to stop all services\n")
 
     def _start_http_service(self):
-        """Start vulnerable HTTP web server"""
+        """Start lightweight vulnerable HTTP server (no external deps)."""
         try:
-            app = Flask(__name__)
-
-            @app.route('/')
-            def home():
-                return """
-                <html>
-                <head><title>VulnSpectra Test Server</title></head>
-                <body>
-                    <h1>🧪 VulnSpectra Testing Lab</h1>
-                    <p><strong>Server:</strong> Apache/2.4.49 (Vulnerable)</p>
-                    <p>This is an intentionally vulnerable test server.</p>
-                    <p><a href="/search?q=test">Try the search feature</a></p>
-                    <hr>
-                    <small>⚠️ For testing purposes only</small>
-                </body>
-                </html>
-                """
-
-            @app.route('/search')
-            def search():
-                """Intentionally vulnerable search endpoint (XSS)"""
-                query = request.args.get('q', '')
-                # Intentional XSS vulnerability for testing
-                return f"""
-                <html>
-                <head><title>Search Results</title></head>
-                <body>
-                    <h2>Search Results</h2>
-                    <p>You searched for: <strong>{query}</strong></p>
-                    <p><a href="/">Back</a></p>
-                </body>
-                </html>
-                """
-
-            # Override server version in response headers
-            @app.after_request
-            def set_server_header(response):
-                response.headers['Server'] = 'Apache/2.4.49'
-                return response
-
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind(("0.0.0.0", 8080))
+            sock.listen(20)
+            sock.settimeout(1.0)
             logger.info("✓ HTTP Web Server starting on port 8080...")
-            app.run(host='0.0.0.0', port=8080, debug=False, use_reloader=False)
 
+            body = (
+                "<html><head><title>VulnSpectra Test Server</title></head>"
+                "<body><h1>VulnSpectra Testing Lab</h1>"
+                "<p><strong>Server:</strong> Apache/2.4.49 (Vulnerable)</p>"
+                "<p>Intentionally insecure test endpoint.</p></body></html>"
+            )
+            response = (
+                "HTTP/1.1 200 OK\r\n"
+                "Server: Apache/2.4.49\r\n"
+                "Content-Type: text/html; charset=utf-8\r\n"
+                f"Content-Length: {len(body.encode('utf-8'))}\r\n"
+                "Connection: close\r\n\r\n"
+                f"{body}"
+            ).encode("utf-8")
+
+            while self.running:
+                try:
+                    conn, _ = sock.accept()
+                    conn.settimeout(1.0)
+                    try:
+                        _ = conn.recv(2048)
+                        conn.sendall(response)
+                    except Exception:
+                        pass
+                    finally:
+                        conn.close()
+                except socket.timeout:
+                    continue
+
+            sock.close()
         except Exception as e:
             logger.error(f"✗ HTTP Web Server failed: {e}")
 
     def _start_ftp_service(self):
-        """Start vulnerable FTP server with anonymous access"""
+        """Start lightweight vulnerable FTP server with anonymous login banner."""
         try:
-            # Create FTP authorizer with anonymous access
-            authorizer = DummyAuthorizer()
-            authorizer.add_anonymous(".", perm="elradfmw")  # Full permissions
-
-            # Create FTP handler
-            handler = FTPHandler
-            handler.authorizer = authorizer
-            handler.banner = "VulnSpectra FTP Test Server (pyftpdlib)"
-
-            # Create and start FTP server
-            server = FTPServer(("0.0.0.0", 2121), handler)
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind(("0.0.0.0", 2121))
+            sock.listen(20)
+            sock.settimeout(1.0)
             logger.info("✓ FTP Server starting on port 2121...")
-            server.serve_forever()
 
+            while self.running:
+                try:
+                    conn, _ = sock.accept()
+                    conn.settimeout(1.0)
+                    try:
+                        conn.sendall(b"220 VulnSpectra FTP Test Server (pyftpdlib)\r\n")
+                        data = conn.recv(1024).upper()
+                        if b"USER" in data:
+                            conn.sendall(b"331 Anonymous login ok, send password.\r\n")
+                            data2 = conn.recv(1024).upper()
+                            if b"PASS" in data2:
+                                conn.sendall(b"230 Login successful.\r\n")
+                        conn.sendall(b"221 Goodbye.\r\n")
+                    except Exception:
+                        pass
+                    finally:
+                        conn.close()
+                except socket.timeout:
+                    continue
+
+            sock.close()
         except Exception as e:
             logger.error(f"✗ FTP Server failed: {e}")
+
+    def _start_ftp_fallback_service(self):
+        """Fallback FTP banner service to guarantee port 2121 availability."""
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind(("0.0.0.0", 2121))
+            sock.listen(20)
+            sock.settimeout(1.0)
+            logger.info("✓ FTP fallback service started on port 2121")
+
+            while self.running:
+                try:
+                    conn, _ = sock.accept()
+                    conn.settimeout(1.0)
+                    try:
+                        conn.sendall(b"220 Anonymous FTP ready\r\n")
+                    except Exception:
+                        pass
+                    finally:
+                        conn.close()
+                except socket.timeout:
+                    continue
+
+            sock.close()
+        except Exception as e:
+            logger.error(f"✗ FTP fallback service failed: {e}")
 
     def _start_ssh_service(self):
         """Start fake SSH service with vulnerable banner"""
@@ -265,6 +299,37 @@ class VulnerableServicesLab:
 
         except Exception as e:
             logger.error(f"✗ Redis Server failed: {e}")
+
+    def _verify_and_recover_services(self):
+        """Verify required ports and start fallback handlers when needed."""
+        required_ports = [8080, 2121, 2222, 2525, 6379]
+        missing = [p for p in required_ports if not self._is_port_open(p)]
+
+        if 2121 in missing:
+            logger.warning("Port 2121 was not reachable; starting FTP fallback handler")
+            fallback = threading.Thread(
+                target=self._start_ftp_fallback_service,
+                daemon=True,
+                name="FTP Fallback Server",
+            )
+            fallback.start()
+            self.services.append(("FTP Fallback Server", fallback, 2121))
+            time.sleep(0.5)
+            missing = [p for p in required_ports if not self._is_port_open(p)]
+
+        if missing:
+            logger.warning("Some lab ports are still not reachable: %s", ", ".join(map(str, missing)))
+        else:
+            logger.info("✓ Verified all expected vulnerable ports are reachable")
+
+    def _is_port_open(self, port: int) -> bool:
+        """Check if a TCP port is accepting local connections."""
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(0.6)
+        try:
+            return sock.connect_ex(("127.0.0.1", port)) == 0
+        finally:
+            sock.close()
 
     def stop_all(self):
         """Stop all services"""
