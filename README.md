@@ -1,12 +1,301 @@
 # 🛡️ VulnSpectra - Intelligent Network Vulnerability & CVE Analysis Platform
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
-[![Java Version](https://img.shields.io/badge/java-11%2B-orange.svg)](https://www.oracle.com/java/technologies/javase-downloads.html)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688.svg)](https://fastapi.tiangolo.com/)
+[![SQLite](https://img.shields.io/badge/SQLite-3-darkblue.svg)](https://www.sqlite.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.0-brightgreen.svg)](https://github.com/yourusername/vulnspectra)
+[![Status](https://img.shields.io/badge/status-Production-brightgreen.svg)]()
 
-VulnSpectra is a comprehensive, modular vulnerability scanning framework that combines network reconnaissance, service detection, CVE intelligence, and risk analysis to provide enterprise-grade security assessments with a professional SOC-style dashboard.
+VulnSpectra is an enterprise-grade, automated vulnerability scanning platform combining network reconnaissance, service detection, CVE intelligence, and real-time risk analysis with a professional Security Operations Center (SOC) dashboard.
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.8+
+- Windows/Linux/macOS
+- 100MB disk space
+
+### Installation
+```bash
+git clone https://github.com/yourusername/vulnspectra.git
+cd VulnSpectra
+pip install -r requirements.txt
+```
+
+### Start the Platform
+
+**Option 1: Full Stack (API + Dashboard)**
+```bash
+python main.py --api
+```
+Then open browser: `http://localhost:8000/dashboard`
+
+**Option 2: CLI Mode**
+```bash
+python main.py --target 127.0.0.1 --ports 80,443,8080
+```
+
+**Option 3: Scan and Export Report**
+```bash
+python main.py --target example.com --ports 1-1000 --output reports/
+```
+
+---
+
+## 📊 Dashboard Features
+
+### Security Overview
+- **Real-time KPI Cards**: Total Scans, Hosts Scanned, Services Detected, Vulnerabilities, Risk Score
+- **Live Clock**: System time display
+- **System Status**: Real-time backend connectivity indicator
+
+### Analysis & Monitoring
+- **Dedicated Panels**:
+  - **Vulnerabilities**: Complete CVE analysis with CVSS scores
+  - **Hosts**: Discovered network hosts with open ports
+  - **Services**: Detected services with versions and banners
+  - **Risk Matrix**: Severity distribution and priority breakdown
+
+### Visualization
+- **Severity Distribution Chart**: Doughnut chart (Critical/High/Medium/Low)
+- **Risk Trend Graph**: Line chart tracking risk scores over time
+- **Priority Cards**: Visual breakdown of vulnerability severity levels
+
+### Scan Management
+- **Start Scan Form**: Configure target, ports, timeout
+- **Progress Bar**: Real-time scan progress tracking
+- **Recent Scans Table**: History with status and download options
+- **Report Export**: HTML and JSON format downloads
+
+---
+
+## 🔧 Core Components
+
+### Scanner (`scanner/`)
+- **NetworkScanner**: Host discovery and IP range scanning
+- **PortScanner**: Multi-threaded port scanning (1-65535)
+- **ServiceDetector**: Service fingerprinting and version detection
+
+### Intelligence (`intelligence/`)
+- **CVEFetcher**: Real-time CVE database queries
+- **VulnerabilityMatcher**: Service-to-CVE correlation
+- **Risk Calculator**: CVSS-based risk scoring
+
+### Reporting (`reporting/`)
+- **HTMLReporter**: Professional HTML reports with styling
+- **JSONReporter**: Structured JSON export for integrations
+- **ConsoleReporter**: CLI-friendly text output
+
+### API (`api/`)
+- **FastAPI Backend**: High-performance async API
+- **Database Models**: SQLAlchemy ORM with SQLite
+- **REST Endpoints**: Scan management and data retrieval
+
+### Dashboard (`dashboard/`)
+- **Modern UI**: Advanced SOC-style interface
+- **Responsive Design**: Works on desktop and tablet
+- **Real-time Updates**: Auto-refresh every 8 seconds
+- **Dark Theme**: Eye-friendly cybersecurity aesthetics
+
+---
+
+## 📡 API Endpoints
+
+### Scan Management
+```
+POST   /api/scans/start              Start a new scan
+GET    /api/scans/{scan_id}/status   Check scan progress
+GET    /api/scans/{scan_id}/results  Get scan results
+GET    /api/scans                    List all scans
+DELETE /api/scans/{scan_id}          Delete a scan
+```
+
+### Dashboard Data
+```
+GET    /api/dashboard/overview       Summary statistics
+GET    /api/health                   System health check
+```
+
+### Reports
+```
+GET    /api/scans/{scan_id}/report?format=html   HTML report
+GET    /api/scans/{scan_id}/report?format=json   JSON report
+```
+
+---
+
+## 🗄️ Database Schema
+
+### Tables
+- **Scan**: Scan metadata, target, status, timestamps
+- **Host**: Discovered hosts, IPs, hostnames, status
+- **Service**: Open ports, service names, versions, banners
+- **Vulnerability**: CVE details, severity, CVSS scores
+- **ScanResult**: Aggregated results and statistics
+
+---
+
+## ⚙️ Configuration
+
+### Environment Variables
+```bash
+API_HOST=0.0.0.0
+API_PORT=8000
+DATABASE_URL=sqlite:///./vulnspectra.db
+LOG_LEVEL=INFO
+SCAN_TIMEOUT=10
+```
+
+### Default Settings (Customizable in Dashboard)
+- Default Target: `127.0.0.1`
+- Default Ports: `80,443`
+- Default Timeout: `2 seconds`
+- Dashboard Refresh: `8 seconds`
+
+---
+
+## 📈 Workflow
+
+1. **Input Target**: Enter IP, domain, or CIDR range
+2. **Configure Scan**: Select ports and timeout
+3. **Start Scan**: Real-time progress tracking
+4. **View Results**: Automatic dashboard update
+5. **Analyze Data**: Explore dedicated panels
+6. **Export Report**: Download HTML or JSON
+
+---
+
+## 🛡️ Security Considerations
+
+- **Local Database**: SQLite for development/testing
+- **No Credential Storage**: All input is transient
+- **HTTPS Ready**: Supports SSL/TLS with FastAPI
+- **Rate Limiting**: Configurable for API endpoints
+- **Scan Limits**: Timeout protection on long-running scans
+
+---
+
+## 📦 Project Structure
+
+```
+VulnSpectra/
+├── api/                 # FastAPI backend
+├── dashboard/           # Web UI (HTML/CSS/JS)
+├── scanner/             # Network scanning modules
+├── intelligence/        # CVE and vulnerability matching
+├── reporting/           # Report generators
+├── utils/               # Utilities and validators
+├── main.py              # Entry point
+├── requirements.txt     # Python dependencies
+└── README.md            # This file
+```
+
+---
+
+## 🔄 Development & Testing
+
+### Run Tests
+```bash
+python test_installation.py
+```
+
+### View Logs
+Logs are stored in `logs/` directory with timestamps.
+
+### Database Inspection
+```bash
+sqlite3 vulnspectra.db ".tables"
+sqlite3 vulnspectra.db "SELECT * FROM Scan;"
+```
+
+---
+
+## 🚨 Troubleshooting
+
+### Port Already in Use
+```bash
+netstat -ano | findstr :8000  # Windows
+lsof -i :8000                  # Linux/macOS
+```
+
+### No Vulnerabilities Detected
+- Ensure target services are running
+- Check port accessibility
+- Verify CVE database connectivity
+- Review logs in `logs/` directory
+
+### Dashboard Not Loading
+- Clear browser cache: Press `Ctrl+F5`
+- Check API is running: `http://localhost:8000/docs`
+- Verify database file exists: `vulnspectra.db`
+
+---
+
+## 📝 Usage Examples
+
+### Scan Local Machine
+```bash
+python main.py --target 127.0.0.1 --ports 1-10000
+```
+
+### Scan Public Target
+```bash
+python main.py --target example.com --ports 80,443,8080
+```
+
+### Generate Report
+```bash
+python main.py --target 192.168.1.0/24 --output reports/ --html
+```
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/name`
+3. Commit changes: `git commit -m "Add feature"`
+4. Push to branch: `git push origin feature/name`
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details.
+
+---
+
+## ⚠️ Disclaimer
+
+**VulnSpectra is designed for authorized security testing only.** Unauthorized access to computer networks is illegal. Always obtain written permission before scanning any network or system you don't own.
+
+---
+
+## 📞 Support & Documentation
+
+- **API Docs**: `http://localhost:8000/docs` (Swagger UI)
+- **Architecture**: See `ARCHITECTURE_ANALYSIS.md`
+- **Changelog**: See `CHANGELOG.md`
+
+---
+
+## 🎯 Roadmap
+
+- [ ] Multi-threaded dashboard updates
+- [ ] Custom vulnerability policies
+- [ ] LDAP/SSO authentication
+- [ ] Kubernetes deployment
+- [ ] Mobile app support
+- [ ] Advanced filtering and analytics
+
+---
+
+**Version**: 1.0.0  
+**Last Updated**: March 2026  
+**Status**: Production Ready ✅
 
 ---
 
